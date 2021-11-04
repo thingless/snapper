@@ -1,0 +1,5 @@
+node_modules
+dist/ext/
+dist/snapper.zip
+npm-debug.log
+

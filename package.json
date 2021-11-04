@@ -1,0 +1,27 @@
+{
+  "name": "snapper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/inject.js",
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "build-ext": "webpack; cd dist/ext; zip -r ../snapper.zip  . *"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.39.0",
+    "chrome-remote-interface": "^0.25.2",
+    "data-uri-to-buffer": "^4.0.0",
+    "eventemitter2": "^4.1.2"
+  },
+  "devDependencies": {
+    "file-loader": "^6.2.0",
+    "webpack": "^5.61.0",
+    "webpack-cli": "^4.9.1"
+  },
+  "bin": {
+    "snapper": "./snapper.js"
+  }
+}
