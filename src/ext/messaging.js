@@ -11,6 +11,11 @@
  * @param {*} handler a function to be called when the method is called.
  *    Note: An additional argument, the senders tab id (or null if sender does not have tab id) will be will be appended to the arguments when calling the handler
  */
+
+if (!self.chrome && self.browser) {
+  self.chrome = self.browser;
+}
+
 export function addJsonRpcListener(methodName, handler) {
   chrome.runtime.onMessage.addListener(function(request, sender) {
     // Check if the call is for this listener

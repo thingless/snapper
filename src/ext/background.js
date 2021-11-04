@@ -4,6 +4,10 @@ import {callJsonRpc, addJsonRpcListener} from './messaging'
 import {chromePromisify} from '../util'
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 
+if (!self.chrome && self.browser) {
+  self.chrome = self.browser;
+}
+
 var registeredTabs = {}
 function contentPageEvent(evt, tabId){
     if(!registeredTabs[tabId]) return; //if the tab is not registered... ignore the event
@@ -27,7 +31,7 @@ async function postToIngest(pageUrl, dataType, data, keyPrefix) {
         url: "text/plain",
     }[dataType]
 
-    //console.log("PUTing to key", key)
+    console.log("PUTing to key", key)
     try {
         const s3 = new S3Client({
             region: REGION,
@@ -82,8 +86,8 @@ function convertDataURIToBinary(dataURI) {
 
 
 async function capturePage(url, dom, tabId) {
-
     const windowId = (await chromePromisify(chrome.tabs.get)(tabId)).windowId
+
     let screenshotDataUrl;
     try {
         screenshotDataUrl = await chromePromisify(chrome.tabs.captureVisibleTab)(windowId)
@@ -91,7 +95,14 @@ async function capturePage(url, dom, tabId) {
         console.error("screenshot error", e)
         screenshotDataUrl = null;
     }
-    const mhtml = await chromePromisify(chrome.pageCapture.saveAsMHTML)({tabId})
+
+    let mhtml;
+    try {
+        mhtml = await chromePromisify(chrome.pageCapture.saveAsMHTML)({tabId})
+    } catch (e) {
+        console.error("mhtml error", e)
+        mhtml = null;
+    }
 
     const keyPrefix = `${(new Date()).toISOString()}/${(new URL(url)).host}`
 
@@ -99,8 +110,10 @@ async function capturePage(url, dom, tabId) {
     await Promise.all([
         postToIngest(url, 'url', url, keyPrefix),
         postToIngest(url, 'html', dom, keyPrefix),
-        postToIngest(url, 'mhtml', await blobToString(mhtml), keyPrefix),
+        mhtml ? postToIngest(url, 'mhtml', await blobToString(mhtml), keyPrefix) : Promise.resolve(),
         imgBytes ? await postToIngest(url, 'jpg', imgBytes, keyPrefix) : Promise.resolve(),
     ])
 }
-addJsonRpcListener('capturePage', capturePage)
+addJsonRpcListener('capturePage', function() {
+  capturePage(...arguments).then()  // firefox nonsense
+})
