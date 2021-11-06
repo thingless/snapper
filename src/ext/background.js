@@ -26,7 +26,7 @@ async function postToIngest(pageUrl, dataType, data, keyPrefix) {
         url: "text/plain",
     }[dataType]
 
-    console.log("PUTing to key", key)
+    console.log("PUTing to", `${endpoint}/${key}`)
     try {
         const s3 = new S3Client({
             region,
@@ -75,7 +75,6 @@ function convertDataURIToBinary(dataURI) {
     }
     return array;
 }
-
 
 async function capturePage(url, dom, tabId) {
     const windowId = (await chromePromisify(chrome.tabs.get)(tabId)).windowId
