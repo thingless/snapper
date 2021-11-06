@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <script src="./options.js"></script>
+</head>
+
+<body class="bg-light">
+
+  <div class="container">
+    <main>
+      <div class="text-center">
+          The snapper chrome extension saves a screenshot/capture of every page you visit to an S3 bucket.
+          This setting page allows you to configure which bucket.
+      </div>
+      <div class="col-12">
+        <form class="needs-validation py-3" novalidate>
+          <div class="row pb-3">
+            <div class="col-12">
+              <label for="s3Endpoint" class="form-label d-block">Endpoint <div class="float-end"><a href="#" target="_blank">help</a></div></label>
+              <input type="text" class="form-control" id="s3Endpoint"
+                placeholder="e.g. https://s3.us-west-000.backblazeb2.com/bucket-name/optional-prefix" value="" required>
+              <div class="invalid-feedback">
+                S3 Endpoint is invalid. <span id="s3EndpointInvalidHint"></span> See the <a href="#" target="_blank">help docs</a> for more information.
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label for="accessKeyId" class="form-label">Access Key Id</label>
+              <input type="text" class="form-control" id="accessKeyId" placeholder="" required>
+              <div class="invalid-feedback">
+                Access Key Id is required.
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label for="secretAccessKey" class="form-label">Secret Access Key</label>
+              <input type="password" class="form-control" id="secretAccessKey" placeholder="" required>
+              <div class="invalid-feedback">
+                Secret Access Key is required.
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Save Settings</button>
+        </form>
+      </div>
+  </div>
+  </main>
+
+  </div>
+</body>
+
+</html>

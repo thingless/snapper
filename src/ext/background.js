@@ -1,29 +1,24 @@
-import './manifest.json'
-//import 'file-loader?name=[name].[ext]!./icon128.png'
-import {callJsonRpc, addJsonRpcListener} from './messaging'
-import {chromePromisify} from '../util'
+import 'file-loader?name=[name].[ext]!./icon128.png'
+import { callJsonRpc, addJsonRpcListener } from './messaging'
+import { chromePromisify, getSettings, parseS3Endpoint } from '../util'
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 
 if (!self.chrome && self.browser) {
-  self.chrome = self.browser;
+    self.chrome = self.browser;
 }
 
 var registeredTabs = {}
-function contentPageEvent(evt, tabId){
-    if(!registeredTabs[tabId]) return; //if the tab is not registered... ignore the event
+function contentPageEvent(evt, tabId) {
+    if (!registeredTabs[tabId]) return; //if the tab is not registered... ignore the event
     registeredTabs[tabId].events.push(evt)
 }
 addJsonRpcListener('contentPageEvent', contentPageEvent)
 
 async function postToIngest(pageUrl, dataType, data, keyPrefix) {
-    // B2
-    const REGION = "us-west-000"
-    const BUCKET = ""
-    const ACCESS_KEY_ID = ""
-    const SECRET_ACCESS_KEY = ""
-    const S3_ENDPOINT = "https://s3.us-west-000.backblazeb2.com"
 
-    const key = `${keyPrefix}/capture.${dataType}`
+    const { s3Endpoint: url, accessKeyId, secretAccessKey } = await getSettings();
+    const { region, endpoint, bucket, prefix: globalPrefix } = parseS3Endpoint(url);
+    const key = `${globalPrefix ? globalPrefix + "/" : ""}${keyPrefix}/capture.${dataType}`
     const contentType = {
         html: "text/html",
         jpg: "image/jpeg",
@@ -34,16 +29,13 @@ async function postToIngest(pageUrl, dataType, data, keyPrefix) {
     console.log("PUTing to key", key)
     try {
         const s3 = new S3Client({
-            region: REGION,
-            credentials: {
-                accessKeyId: ACCESS_KEY_ID,
-                secretAccessKey: SECRET_ACCESS_KEY,
-            },
-            endpoint: S3_ENDPOINT,
+            region,
+            credentials: { accessKeyId, secretAccessKey },
+            endpoint,
         })
 
         const res = await s3.send(new PutObjectCommand({
-            Bucket: BUCKET,
+            Bucket: bucket,
             Key: key,
             Body: data,
             ContentType: contentType,
@@ -55,10 +47,10 @@ async function postToIngest(pageUrl, dataType, data, keyPrefix) {
 }
 
 function blobToString(blob) {
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
         try {
             const reader = new FileReader()
-            reader.onload = function() {
+            reader.onload = function () {
                 resolve(reader.result)
             }
             reader.readAsText(blob)
@@ -71,17 +63,17 @@ function blobToString(blob) {
 var BASE64_MARKER = ';base64,';
 
 function convertDataURIToBinary(dataURI) {
-  if (!dataURI) return dataURI;
-  var base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
-  var base64 = dataURI.substring(base64Index);
-  var raw = window.atob(base64);
-  var rawLength = raw.length;
-  var array = new Uint8Array(new ArrayBuffer(rawLength));
+    if (!dataURI) return dataURI;
+    var base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+    var base64 = dataURI.substring(base64Index);
+    var raw = window.atob(base64);
+    var rawLength = raw.length;
+    var array = new Uint8Array(new ArrayBuffer(rawLength));
 
-  for(var i = 0; i < rawLength; i++) {
-    array[i] = raw.charCodeAt(i);
-  }
-  return array;
+    for (var i = 0; i < rawLength; i++) {
+        array[i] = raw.charCodeAt(i);
+    }
+    return array;
 }
 
 
@@ -98,7 +90,7 @@ async function capturePage(url, dom, tabId) {
 
     let mhtml;
     try {
-        mhtml = await chromePromisify(chrome.pageCapture.saveAsMHTML)({tabId})
+        mhtml = await chromePromisify(chrome.pageCapture.saveAsMHTML)({ tabId })
     } catch (e) {
         console.error("mhtml error", e)
         mhtml = null;
@@ -114,6 +106,6 @@ async function capturePage(url, dom, tabId) {
         imgBytes ? await postToIngest(url, 'jpg', imgBytes, keyPrefix) : Promise.resolve(),
     ])
 }
-addJsonRpcListener('capturePage', function() {
-  capturePage(...arguments).then()  // firefox nonsense
+addJsonRpcListener('capturePage', function () {
+    capturePage(...arguments).then()  // firefox nonsense
 })
