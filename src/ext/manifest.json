@@ -21,7 +21,8 @@
     "pageCapture",
     "webNavigation",
     "<all_urls>",
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "options_ui": {
     "page": "options.html",

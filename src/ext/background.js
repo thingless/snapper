@@ -117,8 +117,24 @@ addJsonRpcListener('capturePage', function () {
 async function refreshIconStatus() {
     const { disabled } = await getSettings();
     chrome.browserAction.setIcon({ path: `icon128${disabled ? "-inactive" : ""}.png` });
-    if(disabled) chrome.browserAction.setBadgeText({ text: "" });
+    if (disabled) chrome.browserAction.setBadgeText({ text: "" });
     else chrome.browserAction.setBadgeText({ text: "" + totalCaptures });
 }
 addJsonRpcListener('refreshIconStatus', refreshIconStatus)
-refreshIconStatus();
+
+function setupContextMenu() {
+    chrome.contextMenus.removeAll();
+    chrome.contextMenus.create({
+        title: "Capture Page",
+        contexts: ["all"],
+        onclick: async function (_, tab) {
+            const { loc, html } = await callJsonRpc(tab.id, 'getHtmlAndLocation')
+            await capturePage(loc, html, tab.id)
+        }
+    });
+}
+
+(async function main(){
+    setupContextMenu();
+    await refreshIconStatus();
+})();
