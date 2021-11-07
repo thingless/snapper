@@ -13,7 +13,7 @@ export function setSettings(settings){
 
 export function getSettings(){
   return new Promise((resolve)=>{
-    chrome.storage.local.get(['s3Endpoint','accessKeyId','secretAccessKey'], resolve)
+    chrome.storage.local.get(['s3Endpoint','accessKeyId','secretAccessKey','disabled'], resolve)
   })
 }
 

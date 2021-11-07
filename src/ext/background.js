@@ -1,4 +1,5 @@
 import 'file-loader?name=[name].[ext]!./icon128.png'
+import 'file-loader?name=[name].[ext]!./icon128-inactive.png'
 import { callJsonRpc, addJsonRpcListener } from './messaging'
 import { chromePromisify, getSettings, parseS3Endpoint } from '../util'
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
@@ -61,7 +62,6 @@ function blobToString(blob) {
 }
 
 var BASE64_MARKER = ';base64,';
-
 function convertDataURIToBinary(dataURI) {
     if (!dataURI) return dataURI;
     var base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
@@ -76,9 +76,11 @@ function convertDataURIToBinary(dataURI) {
     return array;
 }
 
+var totalCaptures = 0;
 async function capturePage(url, dom, tabId) {
     const windowId = (await chromePromisify(chrome.tabs.get)(tabId)).windowId
 
+    //do data capture
     let screenshotDataUrl;
     try {
         screenshotDataUrl = await chromePromisify(chrome.tabs.captureVisibleTab)(windowId)
@@ -86,7 +88,6 @@ async function capturePage(url, dom, tabId) {
         console.error("screenshot error", e)
         screenshotDataUrl = null;
     }
-
     let mhtml;
     try {
         mhtml = await chromePromisify(chrome.pageCapture.saveAsMHTML)({ tabId })
@@ -95,8 +96,12 @@ async function capturePage(url, dom, tabId) {
         mhtml = null;
     }
 
-    const keyPrefix = `${(new Date()).toISOString()}/${(new URL(url)).host}`
+    //update badge count
+    totalCaptures++;
+    await refreshIconStatus();
 
+    //do actual save
+    const keyPrefix = `${(new Date()).toISOString()}/${(new URL(url)).host}`
     const imgBytes = convertDataURIToBinary(screenshotDataUrl)
     await Promise.all([
         postToIngest(url, 'url', url, keyPrefix),
@@ -108,3 +113,12 @@ async function capturePage(url, dom, tabId) {
 addJsonRpcListener('capturePage', function () {
     capturePage(...arguments).then()  // firefox nonsense
 })
+
+async function refreshIconStatus() {
+    const { disabled } = await getSettings();
+    chrome.browserAction.setIcon({ path: `icon128${disabled ? "-inactive" : ""}.png` });
+    if(disabled) chrome.browserAction.setBadgeText({ text: "" });
+    else chrome.browserAction.setBadgeText({ text: "" + totalCaptures });
+}
+addJsonRpcListener('refreshIconStatus', refreshIconStatus)
+refreshIconStatus();

@@ -10,6 +10,7 @@ var extScript = {
     content: './src/ext/content.js',
     background: './src/ext/background.js',
     options: './src/ext/options.js',
+    popup: './src/ext/popup.js',
   },
   output: {
     path: path.resolve(__dirname, 'dist/ext'),
