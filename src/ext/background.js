@@ -1,7 +1,7 @@
 import 'file-loader?name=[name].[ext]!./icon128.png'
 import 'file-loader?name=[name].[ext]!./icon128-inactive.png'
 import { callJsonRpc, addJsonRpcListener } from './messaging'
-import { chromePromisify, getSettings, parseS3Endpoint } from '../util'
+import { toPromise, getSettings, parseS3Endpoint } from '../util'
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 
 if (!self.chrome && self.browser) {
@@ -16,7 +16,6 @@ function contentPageEvent(evt, tabId) {
 addJsonRpcListener('contentPageEvent', contentPageEvent)
 
 async function postToIngest(pageUrl, dataType, data, keyPrefix) {
-
     const { s3Endpoint: url, accessKeyId, secretAccessKey } = await getSettings();
     const { region, endpoint, bucket, prefix: globalPrefix } = parseS3Endpoint(url);
     const key = `${globalPrefix ? globalPrefix + "/" : ""}${keyPrefix}/capture.${dataType}`
@@ -78,19 +77,19 @@ function convertDataURIToBinary(dataURI) {
 
 var totalCaptures = 0;
 async function capturePage(url, dom, tabId) {
-    const windowId = (await chromePromisify(chrome.tabs.get)(tabId)).windowId
+    const windowId = (await toPromise(chrome.tabs.get)(tabId)).windowId
 
     //do data capture
     let screenshotDataUrl;
     try {
-        screenshotDataUrl = await chromePromisify(chrome.tabs.captureVisibleTab)(windowId)
+        screenshotDataUrl = await toPromise(chrome.tabs.captureVisibleTab)(windowId)
     } catch (e) {
         console.error("screenshot error", e)
         screenshotDataUrl = null;
     }
     let mhtml;
     try {
-        mhtml = await chromePromisify(chrome.pageCapture.saveAsMHTML)({ tabId })
+        mhtml = await toPromise(chrome.pageCapture.saveAsMHTML)({ tabId })
     } catch (e) {
         console.error("mhtml error", e)
         mhtml = null;
@@ -110,9 +109,7 @@ async function capturePage(url, dom, tabId) {
         imgBytes ? await postToIngest(url, 'jpg', imgBytes, keyPrefix) : Promise.resolve(),
     ])
 }
-addJsonRpcListener('capturePage', function () {
-    capturePage(...arguments).then()  // firefox nonsense
-})
+addJsonRpcListener('capturePage', capturePage)
 
 async function refreshIconStatus() {
     const { disabled } = await getSettings();
