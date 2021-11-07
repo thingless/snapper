@@ -11,5 +11,9 @@ async function main() {
         setSettings({ disabled: !this.checked })
         callJsonRpc(null, 'refreshIconStatus')
     });
+
+    document.getElementById("openOptionsLink").addEventListener("click", function(){
+        chrome.runtime.openOptionsPage()
+    })
 }
 document.addEventListener("DOMContentLoaded", main);
